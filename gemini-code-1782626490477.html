@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SUPERMARIO WORLD: DENOTATIVE VS. CONNOTATIVE</title>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <style>
+        * {
+            box-sizing: border-box;
+            user-select: none;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            background-color: #000;
+            font-family: 'Press Start 2P', cursive;
+            color: #fff;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            overflow: hidden;
+        }
+        #game-container {
+            width: 800px;
+            height: 600px;
+            background: linear-gradient(to bottom, #5c94fc 0%, #5c94fc 70%, #b8b8f8 100%);
+            position: relative;
+            border: 4px solid #fff;
+            box-shadow: 0 0 20px rgba(0,0,0,0.8);
+            display: flex;
+            flex-direction: column;
+        }
+        /* Screens */
+        .screen {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 40px;
+        }
+        h1 {
+            font-size: 24px;
+            color: #e60012;
+            text-shadow: 3px 3px #000;
+            margin-bottom: 10px;
+            line-height: 1.5;
+        }
+        h2 {
+            font-size: 14px;
+            color: #fcb43a;
+            margin-bottom: 40px;
+            line-height: 1.6;
+        }
+        .btn {
+            font-family: 'Press Start 2P', cursive;
+            padding: 15px 30px;
+            font-size: 16px;
+            background-color: #00a2e8;
+            color: white;
+            border: 4px solid #fff;
+            cursor: pointer;
+            box-shadow: 0 5px #005b82;
+        }
+        .btn:hover { background-color: #40c4ff; }
+        .btn:active { transform: translateY(4px); box-shadow: 0 1px #005b82; }
+        
+        /* HUD Header */
+        #hud {
+            display: flex;
+            justify-content: space-between;
+            padding: 20px;
+            font-size: 14px;
+            text-shadow: 2px 2px #000;
+            z-index: 2;
+        }
+        .hud-item { display: flex; flex-direction: column; align-items: center; }
+        .hud-label { color: #fff; margin-bottom: 5px; }
+        .hud-val { color: #fcb43a; }
+
+        /* Quiz UI Layout */
+        #quiz-box {
+            background: rgba(0, 0, 0, 0.75);
+            border: 4px solid #fcb43a;
+            margin: 0 20px;
+            padding: 20px;
+            border-radius: 10px;
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            z-index: 2;
+            max-height: 260px;
+        }
+        #directions { font-size: 10px; color: #aaa; line-height: 1.5; margin-bottom: 15px; }
+        #question { font-size: 12px; line-height: 1.8; color: #fff; }
+        .highlight { color: #ffff00; font-weight: bold; background: rgba(255,255,0,0.2); padding: 2px 4px; }
+        #options { display: flex; gap: 20px; justify-content: center; margin-top: 15px; }
+        
+        /* World Stage Scene */
+        #stage {
+            height: 240px;
+            position: relative;
+            margin-top: auto;
+            width: 100%;
+            overflow: hidden;
+        }
+        .cloud {
+            position: absolute; background: #fff; border-radius: 20px;
+            width: 80px; height: 30px; top: -10px; opacity: 0.8;
+        }
+        .cloud::before, .cloud::after {
+            content: ''; position: absolute; background: #fff; border-radius: 50%;
+        }
+        .cloud::before { width: 40px; height: 40px; top: -20px; left: 10px; }
+        .cloud::after { width: 30px; height: 30px; top: -15px; right: 10px; }
+
+        .bush {
+            position: absolute; background: #00a800;
+            border-top-left-radius: 15px; border-top-right-radius: 15px;
+            width: 60px; height: 25px; bottom: 20px;
+        }
+        #flag-pole {
+            position: absolute; right: 140px; bottom: 20px;
+            width: 6px; height: 140px; background: #b8b8f8; border: 2px solid #000;
+        }
+        #flag {
+            position: absolute; left: -26px; top: 10px;
+            width: 30px; height: 20px; background: #e60012; border: 2px solid #000;
+        }
+        #castle {
+            position: absolute; right: 10px; bottom: 20px;
+            width: 90px; height: 80px; background: #929292; border: 3px solid #000;
+        }
+        .castle-door {
+            position: absolute; bottom: 0; left: 32px; width: 26px; height: 35px;
+            background: #000; border-top-left-radius: 10px; border-top-right-radius: 10px;
+        }
+        #ground {
+            width: 100%; height: 20px; background-color: #d86800;
+            border-top: 4px solid #40a800; z-index: 3;
+        }
+
+        /* Continuous background brick row */
+        #brick-row-container {
+            position: absolute;
+            bottom: 160px;
+            left: 0;
+            width: 100%;
+            height: 45px;
+            background-image: url('warsaw-poland-may-31-2024-super-mario-games-question-block-icon-brick-wall-icon-free-vector.jpg');
+            background-size: auto 100%;
+            background-repeat: repeat-x;
+            background-position: left center;
+            z-index: 2;
+            border-bottom: 3px solid #000;
+        }
+
+        /* Dynamic target question mark overlay block */
+        #active-question-block {
+            position: absolute;
+            bottom: 160px;
+            width: 47px;
+            height: 45px;
+            background-image: url('warsaw-poland-may-31-2024-super-mario-games-question-block-icon-brick-wall-icon-free-vector.jpg');
+            background-size: auto 100%;
+            background-repeat: no-repeat;
+            background-position: center center;
+            transition: left 0.5s linear, transform 0.1s;
+            z-index: 4;
+        }
+        #active-question-block.hit {
+            filter: brightness(0.4) sepia(1) hue-rotate(-50deg);
+            transform: translateY(-10px);
+        }
+
+        /* Front-Facing Image Based Mario Character using Mario_New_Super_Mario_Bros_U_Deluxe.jpg */
+        #mario {
+            position: absolute; 
+            bottom: 20px; 
+            left: 40px; 
+            width: 50px; 
+            height: 75px;
+            background-image: url('Mario_New_Super_Mario_Bros_U_Deluxe.jpg');
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center bottom;
+            /* Explicitly transitions horizontal walking first, jumps are triggered dynamically */
+            transition: left 0.5s linear, bottom 0.2s ease-in-out;
+            z-index: 5;
+        }
+
+        /* Walking Animation effect via subtle hip tilt tilt */
+        .walking {
+            animation: walk-sway 0.15s infinite alternate linear;
+        }
+        @keyframes walk-sway {
+            0% { transform: rotate(-3deg); }
+            100% { transform: rotate(3deg); }
+        }
+
+        /* Jump Action */
+        .jump { animation: jump-anim 0.35s ease-out-in; }
+        @keyframes jump-anim {
+            0%, 100% { bottom: 20px; }
+            50% { bottom: 105px; }
+        }
+        .sad { transform: scaleY(0.7) translateY(20px); filter: grayscale(1) contrast(0.5); }
+
+        /* Floating Gold Coin Particle System */
+        .coin-pop {
+            position: absolute; width: 16px; height: 22px;
+            background: #ffff00; border: 2px solid #000; border-radius: 50%;
+            z-index: 3; animation: coin-fly 0.4s ease-out forwards;
+            box-shadow: inset -2px -2px 0px #fcb43a;
+        }
+        @keyframes coin-fly {
+            0% { bottom: 210px; opacity: 1; transform: scale(1); }
+            50% { bottom: 250px; opacity: 1; }
+            100% { bottom: 230px; opacity: 0; transform: scale(1.3); }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="game-container">
+        
+        <!-- Welcome Screen -->
+        <div id="start-screen" class="screen">
+            <h1>SUPERMARIO WORLD<br><span style="color:#fcb43a;">DENOTATIVE VS. CONNOTATIVE</span></h1>
+            <h2>Mario walks under the bricks and jumps up to smash them on correct answers!</h2>
+            <button class="btn" onclick="initializeGame()">START GAME</button>
+        </div>
+
+        <!-- Failure Overlay Screen -->
+        <div id="fail-screen" class="screen" style="display:none;">
+            <h1 style="color:#ff2a3a;">GAME OVER</h1>
+            <h2 id="fail-message">Time ran out!</h2>
+            <button class="btn" onclick="tryAgainCurrentItem()">TRY AGAIN</button>
+        </div>
+
+        <!-- Victory Screen -->
+        <div id="win-screen" class="screen" style="display:none;">
+            <h1>COURSE CLEAR!</h1>
+            <h2>Excellent! Mario cleared all stages and reached the castle!</h2>
+            <button class="btn" onclick="resetWholeGame()">PLAY AGAIN</button>
+        </div>
+
+        <!-- HUD Header Status Board -->
+        <div id="hud">
+            <div class="hud-item">
+                <span class="hud-label">MARIO</span>
+                <span class="hud-val" id="score-display">000000</span>
+            </div>
+            <div class="hud-item">
+                <span class="hud-label">COINS</span>
+                <span class="hud-val" id="coin-display">x00</span>
+            </div>
+            <div class="hud-item">
+                <span class="hud-label">STAGE</span>
+                <span class="hud-val" id="item-display">1 / 30</span>
+            </div>
+            <div class="hud-item">
+                <span class="hud-label">TIME</span>
+                <span class="hud-val" id="timer-display">15</span>
+            </div>
+        </div>
+
+        <!-- Question Panel Layout -->
+        <div id="quiz-box">
+            <div>
+                <div id="directions">Loading directions...</div>
+                <div id="question">Loading items...</div>
+            </div>
+            <div id="options">
+                <button class="btn" id="opt1" onclick="evaluateAnswer(this.innerText)"></button>
+                <button class="btn" id="opt2" onclick="evaluateAnswer(this.innerText)"></button>
+            </div>
+        </div>
+
+        <!-- Physical Stage Scene -->
+        <div id="stage">
+            <div class="cloud" style="left: 15%; top: 20px;"></div>
+            <div class="cloud" style="left: 55%; top: 40px;"></div>
+            <div class="bush" style="left: 25%;"></div>
+            <div class="bush" style="left: 70%;"></div>
+            
+            <!-- Continuous sets of background bricks -->
+            <div id="brick-row-container"></div>
+            
+            <!-- Active target hitting box -->
+            <div id="active-question-block"></div>
+            
+            <div id="flag-pole"><div id="flag"></div></div>
+            <div id="castle"><div class="castle-door"></div></div>
+            
+            <!-- Mario Character using Mario_New_Super_Mario_Bros_U_Deluxe.jpg -->
+            <div id="mario"></div>
+        </div>
+
+        <div id="ground"></div>
+    </div>
+
+    <script>
+        const quizItems = [
+            { q: "1. The owl stayed awake all night.<br>Our science teacher is an <span class='highlight'>owl</span> because she is very wise.", type: "DC", ans: "Connotative" },
+            { q: "2. The children planted a tree in the school garden.<br>The <span class='highlight'>tree</span> needs water every afternoon.", type: "DC", ans: "Denotative" },
+            { q: "3. The classroom door is open.<br>She has an <span class='highlight'>open</span> mind when listening to others' ideas.", type: "DC", ans: "Connotative" },
+            { q: "4. The <span class='highlight'>eagle</span> built its nest on a tall tree.<br>The eagle spread its wings and flew across the sky.", type: "DC", ans: "Denotative" },
+            { q: "5. The lion roared loudly in the forest.<br>Our team captain is a <span class='highlight'>lion</span> during every basketball game.", type: "DC", ans: "Connotative" },
+            { q: "6. My father bought a new car last week.<br>The <span class='highlight'>car</span> is parked in front of our house.", type: "DC", ans: "Denotative" },
+            { q: "7. Ice melts when exposed to heat.<br>Her kind words <span class='highlight'>melted</span> my anger.", type: "DC", ans: "Connotative" },
+            { q: "8. The baby has soft hands.<br>The nurse carefully washed the baby's <span class='highlight'>hands</span>.", type: "DC", ans: "Denotative" },
+            { q: "9. I saw a snake in the backyard.<br>She is the <span class='highlight'>snake</span> in our group because she tells our secrets.", type: "DC", ans: "Connotative" },
+            { q: "10. The farmer harvested ripe mangoes yesterday.<br>The <span class='highlight'>mangoes</span> were sweet and juicy.", type: "DC", ans: "Denotative" },
+            { q: "11. The little bird spread its wings and flew away.<br>My mother is my <span class='highlight'>wings</span> because she helps me achieve my dreams.", type: "DC", ans: "Connotative" },
+            { q: "12. The classroom was filled with bright stars for the science exhibit.<br>Rina is the <span class='highlight'>star</span> of our dance group.", type: "DC", ans: "Connotative" },
+            { q: "13. The tree has many branches.<br>Our school has a <span class='highlight'>branch</span> in the next town.", type: "DC", ans: "Connotative" },
+            { q: "14. Mother placed the fresh flowers in a vase.<br>The <span class='highlight'>flowers</span> in the garden need water every morning.", type: "DC", ans: "Denotative" },
+            { q: "15. The sun rises in the east every morning.<br>You are the <span class='highlight'>sunshine</span> of our family.", type: "DC", ans: "Connotative" },
+            { q: "16. The dog has sharp teeth.<br>The bully showed his <span class='highlight'>teeth</span> when he shouted at the younger students.", type: "DC", ans: "Connotative" },
+            { q: "17. The book is on the table.<br>My grandfather is a <span class='highlight'>book</span> of wisdom because he knows many things.", type: "DC", ans: "Connotative" },
+            { q: "18. The classroom door is open.<br>The <span class='highlight'>door</span> was painted blue yesterday.", type: "DC", ans: "Denotative" },
+            { q: "19. My grandfather has a heart problem.<br>Our teacher has a <span class='highlight'>heart</span> for helping struggling learners.", type: "DC", ans: "Connotative" },
+            { q: "20. The ice cubes are inside the freezer.<br>The <span class='highlight'>ice</span> in the cooler has not melted yet.", type: "DC", ans: "Denotative" },
+            
+            { q: "1. Both slim and skinny mean thin. Maria is <span class='highlight'>slim</span> because she exercises regularly.", type: "PN", ans: "Positive" },
+            { q: "2. Both confident and arrogant describe someone who believes in their abilities. Jake is <span class='highlight'>arrogant</span> because he thinks he is better than everyone else.", type: "PN", ans: "Negative" },
+            { q: "3. Both economical and cheap describe spending little money. My father is <span class='highlight'>economical</span> because he wisely saves money for our family's needs.", type: "PN", ans: "Positive" },
+            { q: "4. Both curious and nosy describe wanting to know something. My neighbor is <span class='highlight'>nosy</span> because she keeps asking about other people's private lives.", type: "PN", ans: "Negative" },
+            { q: "5. Both determined and stubborn describe someone who does not give up easily. Ana is <span class='highlight'>determined</span> to finish her project before the deadline.", type: "PN", ans: "Positive" },
+            { q: "6. Both childlike and childish describe behaviors often seen in children. Ben is <span class='highlight'>childish</span> because he throws tantrums whenever he loses.", type: "PN", ans: "Negative" },
+            { q: "7. Both fragrance and odor describe a smell. The room was filled with the sweet <span class='highlight'>fragrance</span> of fresh flowers.", type: "PN", ans: "Positive" },
+            { q: "8. Both vintage and old describe something that has existed for many years. My grandfather proudly drives his <span class='highlight'>vintage</span> car during parades.", type: "PN", ans: "Positive" },
+            { q: "9. Both thrifty and stingy describe someone who spends money carefully. My aunt is <span class='highlight'>stingy</span> because she never shares her food with others.", type: "PN", ans: "Negative" },
+            { q: "10. Both unique and weird describe someone or something different from others. Mia has a <span class='highlight'>unique</span> talent for painting beautiful murals.", type: "PN", ans: "Positive" }
+        ];
+
+        let currentIndex = 0;
+        let score = 0;
+        let coins = 0;
+        let timeLeft = 15;
+        let timer = null;
+        let audioCtx = null;
+        let bgmInterval = null;
+        let isAnimating = false; // Prevents spam clicking during transitions
+
+        const dirDC = "Directions: Tap Denotative if the highlighted word is used in its literal meaning and Connotative if it is used in its suggested meaning.";
+        const dirPN = "Directions: Read each pair of words. Identify whether the highlighted word has a Positive Connotation or Negative Connotation.";
+
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                startBGM();
+            }
+        }
+
+        function playTone(freq, type, duration, startTime = 0) {
+            if (!audioCtx) return;
+            let osc = audioCtx.createOscillator();
+            let gainNode = audioCtx.createGain();
+            osc.type = type;
+            osc.frequency.value = freq;
+            osc.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+            
+            let time = audioCtx.currentTime + startTime;
+            osc.start(time);
+            gainNode.gain.setValueAtTime(0.12, time);
+            gainNode.gain.exponentialRampToValueAtTime(0.001, time + duration);
+            osc.stop(time + duration);
+        }
+
+        function startBGM() {
+            let noteTime = 0.22;
+            let melody = [659, 659, 0, 659, 0, 523, 659, 0, 784, 0, 0, 0, 392, 0, 0, 0];
+            let step = 0;
+
+            bgmInterval = setInterval(() => {
+                let freq = melody[step];
+                if (freq > 0) playTone(freq, 'square', 0.14);
+                step = (step + 1) % melody.length;
+            }, noteTime * 1000);
+        }
+
+        function playDing() {
+            playTone(523.25, 'sine', 0.12, 0); 
+            playTone(659.25, 'sine', 0.22, 0.08); 
+        }
+
+        function playBuzzer() {
+            playTone(180, 'sawtooth', 0.4, 0);
+            playTone(170, 'sawtooth', 0.4, 0.05);
+        }
+
+        function initializeGame() {
+            document.getElementById('start-screen').style.display = 'none';
+            initAudio();
+            setupLevelPosition();
+        }
+
+        function setupLevelPosition() {
+            isAnimating = false;
+            document.getElementById('mario').className = ''; 
+            document.getElementById('active-question-block').className = '';
+
+            timeLeft = 15;
+            document.getElementById('timer-display').innerText = timeLeft;
+            
+            let item = quizItems[currentIndex];
+            document.getElementById('item-display').innerText = (currentIndex + 1) + " / 30";
+            document.getElementById('question').innerHTML = item.q;
+            
+            if (item.type === "DC") {
+                document.getElementById('directions').innerText = dirDC;
+                document.getElementById('opt1').innerText = "Denotative";
+                document.getElementById('opt2').innerText = "Connotative";
+            } else {
+                document.getElementById('directions').innerText = dirPN;
+                document.getElementById('opt1').innerText = "Positive";
+                document.getElementById('opt2').innerText = "Negative";
+            }
+
+            // Set current starting coordinates
+            let progressRatio = currentIndex / 30;
+            let currentXCoord = 40 + (progressRatio * 520);
+            
+            document.getElementById('mario').style.left = currentXCoord + 'px';
+            document.getElementById('active-question-block').style.left = (currentXCoord + 2) + 'px';
+
+            clearInterval(timer);
+            timer = setInterval(() => {
+                timeLeft--;
+                document.getElementById('timer-display').innerText = timeLeft;
+                if (timeLeft <= 0) {
+                    clearInterval(timer);
+                    triggerFailure("Time ran out!");
+                }
+            }, 1000);
+        }
+
+        function evaluateAnswer(selectedOption) {
+            if (isAnimating) return;
+            clearInterval(timer);
+            
+            let currentItem = quizItems[currentIndex];
+            let mario = document.getElementById('mario');
+            let block = document.getElementById('active-question-block');
+            
+            if (selectedOption === currentItem.ans) {
+                isAnimating = true;
+                score += 100;
+                coins++;
+                
+                // 1. Calculate next position coordinates
+                let nextProgressRatio = (currentIndex + 1) / 30;
+                let nextXCoord = 40 + (nextProgressRatio * 520);
+                
+                // 2. Mario begins walking right under the continuous bricks
+                mario.classList.add('walking');
+                mario.style.left = nextXCoord + 'px';
+                block.style.left = (nextXCoord + 2) + 'px';
+
+                // 3. Once walking animation finishes transition (500ms CSS duration), stop walking and JUMP to smash brick
+                setTimeout(() => {
+                    mario.classList.remove('walking');
+                    mario.classList.add('jump');
+                    playDing();
+                    
+                    document.getElementById('score-display').innerText = String(score).padStart(6, '0');
+                    document.getElementById('coin-display').innerText = "x" + String(coins).padStart(2, '0');
+
+                    // 4. Hit the brick mid-jump phase to release coin particle
+                    setTimeout(() => {
+                        block.classList.add('hit');
+                        spawnCoinFx(mario.offsetLeft);
+                    }, 175);
+
+                    // 5. Complete whole animation sequence loop and check level completion thresholds
+                    setTimeout(() => {
+                        currentIndex++;
+                        if (currentIndex >= 30) {
+                            triggerVictory();
+                        } else {
+                            setupLevelPosition();
+                        }
+                    }, 400);
+
+                }, 500);
+
+            } else {
+                playBuzzer();
+                mario.classList.add('sad');
+                setTimeout(() => {
+                    triggerFailure("Oops! Incorrect option chosen.");
+                }, 600);
+            }
+        }
+
+        function spawnCoinFx(leftX) {
+            let coin = document.createElement('div');
+            coin.className = 'coin-pop';
+            coin.style.left = (leftX + 16) + 'px';
+            document.getElementById('stage').appendChild(coin);
+            setTimeout(() => coin.remove(), 400);
+        }
+
+        function triggerFailure(msg) {
+            document.getElementById('fail-message').innerText = msg;
+            document.getElementById('fail-screen').style.display = 'flex';
+        }
+
+        function tryAgainCurrentItem() {
+            document.getElementById('fail-screen').style.display = 'none';
+            setupLevelPosition();
+        }
+
+        function triggerVictory() {
+            document.getElementById('flag').style.top = '110px';
+            document.getElementById('mario').style.left = '640px';
+            setTimeout(() => {
+                document.getElementById('win-screen').style.display = 'flex';
+            }, 1000);
+        }
+
+        function resetWholeGame() {
+            currentIndex = 0;
+            score = 0;
+            coins = 0;
+            document.getElementById('score-display').innerText = "000000";
+            document.getElementById('coin-display').innerText = "x00";
+            document.getElementById('flag').style.top = '10px';
+            document.getElementById('win-screen').style.display = 'none';
+            setupLevelPosition();
+        }
+    </script>
+</body>
+</html>
